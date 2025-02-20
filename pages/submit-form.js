@@ -40,10 +40,7 @@ export default function SubmitForm() {
       } else {
         setResult(data.result);
       }
-    } 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    catch (_err) {
-      console.error(_err);
+    } catch {
       setError('An error occurred.');
     }
   };

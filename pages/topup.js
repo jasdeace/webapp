@@ -40,10 +40,7 @@ export default function TopUp() {
       } else {
         setMessage('Top-up successful! Your new balance is: ' + data.newCredit);
       }
-    } 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    catch (_err) {
-      console.error(_err);
+    } catch {
       setMessage('An error occurred during top-up.');
     }
   };
