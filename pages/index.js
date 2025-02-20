@@ -1,33 +1,36 @@
 import Link from 'next/link';
+import AuthenticatedLayout from '../components/AuthenticatedLayout'; // Adjust path if needed
 
 export default function Home() {
   return (
-    <div style={{ maxWidth: '800px', margin: '2rem auto', textAlign: 'center', padding: '2rem' }}>
-      <h1>Welcome to My Web App</h1>
-      <p>Navigate to the following pages:</p>
-      <ul style={{ listStyle: 'none', padding: 0 }}>
-        <li style={{ margin: '1rem 0' }}>
-          <Link href="/login">
-            <span style={{ color: 'blue', textDecoration: 'underline', cursor: 'pointer' }}>Login</span>
-          </Link>
-        </li>
-        <li style={{ margin: '1rem 0' }}>
-          <Link href="/signup">
-            <span style={{ color: 'blue', textDecoration: 'underline', cursor: 'pointer' }}>Sign Up</span>
-          </Link>
-        </li>
-        <li style={{ margin: '1rem 0' }}>
-          <Link href="/submit-form">
-            <span style={{ color: 'blue', textDecoration: 'underline', cursor: 'pointer' }}>Submit Form</span>
-          </Link>
-        </li>
-        <li style={{ margin: '1rem 0' }}>
-          <Link href="/topup">
-            <span style={{ color: 'blue', textDecoration: 'underline', cursor: 'pointer' }}>Top Up</span>
-          </Link>
-        </li>
-      </ul>
-      <p>Start exploring the app by clicking on any link above!</p>
-    </div>
+    <AuthenticatedLayout>
+      <div className="max-w-2xl mx-auto text-center p-8">
+        <h1 className="text-3xl font-bold mb-4">Welcome to My Web App</h1>
+        <p className="mb-6">Navigate to the following pages:</p>
+        <ul className="list-none p-0">
+          <li className="my-4">
+            <Link href="/login">
+              <span className="text-blue-600 underline cursor-pointer hover:text-blue-800">Login</span>
+            </Link>
+          </li>
+          <li className="my-4">
+            <Link href="/signup">
+              <span className="text-blue-600 underline cursor-pointer hover:text-blue-800">Sign Up</span>
+            </Link>
+          </li>
+          <li className="my-4">
+            <Link href="/submit-form">
+              <span className="text-blue-600 underline cursor-pointer hover:text-blue-800">Submit Form</span>
+            </Link>
+          </li>
+          <li className="my-4">
+            <Link href="/topup">
+              <span className="text-blue-600 underline cursor-pointer hover:text-blue-800">Top Up</span>
+            </Link>
+          </li>
+        </ul>
+        <p className="mt-6">Start exploring the app by clicking on any link above!</p>
+      </div>
+    </AuthenticatedLayout>
   );
 }

@@ -2,23 +2,21 @@
   "compilerOptions": {
     "target": "es2020",
     "lib": ["dom", "dom.iterable", "esnext"],
-    "allowJs": true, // Allow JavaScript files
-    "skipLibCheck": true, // Skip type checking of declaration files
-    "strict": true, // Enable all strict type-checking options
-    "forceConsistentCasingInFileNames": true, // Ensure consistent file naming
-    "noEmit": true, // Next.js handles compilation, no need for TypeScript to emit
-    "esModuleInterop": true, // Enable interop between CommonJS and ES Modules
-    "module": "esnext", // Match Next.js module system
-    "moduleResolution": "node", // Use Node.js module resolution
-    "resolveJsonModule": true, // Allow importing JSON files
-    "isolatedModules": true, // Ensure each file can be safely transformed without context
-    "jsx": "preserve", // Preserve JSX for Next.js
-    "incremental": true, // Enable incremental compilation for faster builds
-    "baseUrl": ".", // Resolve paths relative to the project root
-    "paths": {
-      "@/*": ["./*"] // Optional: Add if you use aliases, but remove if unused
-    }
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "baseUrl": ".",
+    "paths": {}
   },
-  "include": ["next-env.d.ts", "app/**/*", "utils/**/*", "**/*.ts", "**/*.tsx", "**/*.js"], // Include all relevant files
-  "exclude": ["node_modules", "tailwind.config.ts"] // Exclude tailwind.config.ts to avoid React errors
+  "include": ["next-env.d.ts", "app/**/*", "utils/**/*", "**/*.ts", "**/*.tsx", "**/*.js"],
+  "exclude": ["node_modules", "tailwind.config.ts"]
 }
