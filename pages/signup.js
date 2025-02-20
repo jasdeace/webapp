@@ -1,25 +1,30 @@
-// pages/signup.js
 import { useState } from 'react';
 import { supabase } from '../utils/supabaseClient';
+import { useRouter } from 'next/router';
 
 export default function Signup() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState(null);
+  const router = useRouter();
 
   const handleSignup = async (e) => {
     e.preventDefault();
-    const { error } = await supabase.auth.signUp({ email, password });
-    if (error) {
-      alert(error.message);
-    } else {
-      alert('Sign up successful! Please check your email for confirmation.');
-      // Optionally, you could redirect the user or call an API to create a profile entry
+    try {
+      const { error } = await supabase.auth.signUp({ email, password });
+      if (error) throw error;
+      setError(null);
+      alert('Sign up successful! Please check your email for verification.');
+      router.push('/login'); // Redirect to login after signup
+    } catch (err) {
+      setError(err.message);
     }
   };
 
   return (
     <div style={{ maxWidth: '400px', margin: '2rem auto', textAlign: 'center' }}>
       <h1>Sign Up</h1>
+      {error && <p style={{ color: 'red' }}>{error}</p>}
       <form onSubmit={handleSignup}>
         <input
           type="email"
@@ -35,10 +40,11 @@ export default function Signup() {
           onChange={(e) => setPassword(e.target.value)}
           style={{ width: '100%', padding: '0.5rem', marginBottom: '1rem' }}
         />
-        <button type="submit" style={{ width: '100%', padding: '0.5rem' }}>
-          Sign Up
-        </button>
+        <button type="submit" style={{ width: '100%', padding: '0.5rem' }}>Sign Up</button>
       </form>
+      <p>
+        Already have an account? <a href="/login" style={{ color: 'blue' }}>Login here</a>
+      </p>
     </div>
   );
 }

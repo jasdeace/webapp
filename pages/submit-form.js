@@ -1,26 +1,30 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../utils/supabaseClient';
+import { useRouter } from 'next/router';
 
 export default function SubmitForm() {
   const [formData, setFormData] = useState('');
   const [userId, setUserId] = useState(null);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
+  const router = useRouter();
 
-  // Get the current logged-in user
+  // Check if user is authenticated and redirect if not
   useEffect(() => {
-    async function getUser() {
+    async function checkUser() {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          setUserId(user.id);
+        const { data: { user }, error } = await supabase.auth.getUser();
+        if (error || !user) {
+          router.push('/login'); // Redirect to login if not authenticated
+          return;
         }
+        setUserId(user.id);
       } catch (err) {
-        setError('Error fetching user: ' + err.message);
+        setError('Error checking authentication: ' + err.message);
       }
     }
-    getUser();
-  }, []);
+    checkUser();
+  }, [router]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -47,6 +51,10 @@ export default function SubmitForm() {
       setError('An error occurred: ' + err.message);
     }
   };
+
+  if (!userId) {
+    return null; // Or a loading spinner while redirecting
+  }
 
   return (
     <div style={{ maxWidth: '600px', margin: '2rem auto', textAlign: 'center' }}>
