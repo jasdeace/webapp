@@ -36,14 +36,29 @@ export default function TopUp() {
       return;
     }
     try {
-      // Fetch current credit balance
-      const { data: creditData, error: creditError } = await supabase
+      // Fetch or create user's credit balance
+      let { data: creditData, error: creditError } = await supabase
         .from('credits')
         .select('credit_balance')
         .eq('user_id', userId)
         .single();
 
-      if (creditError) throw creditError;
+      if (creditError && creditError.code === 'PGRST116') { // No rows found
+        // Insert a new credits row with 0 balance if none exists
+        const { error: insertError } = await supabase
+          .from('credits')
+          .insert({ user_id: userId, credit_balance: 0 });
+        if (insertError) throw insertError;
+
+        // Fetch the newly inserted row
+        ({ data: creditData } = await supabase
+          .from('credits')
+          .select('credit_balance')
+          .eq('user_id', userId)
+          .single());
+      } else if (creditError) {
+        throw creditError;
+      }
 
       const currentCredit = creditData.credit_balance || 0;
       const newCredit = currentCredit + parseInt(amount);
