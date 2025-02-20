@@ -5,7 +5,7 @@ import axios from 'axios';
 export default async function handler(req, res) {
   if (req.method === 'POST') {
     const { userId, formData } = req.body;
-    const creditCost = 10;  // set your cost per submission
+    const creditCost = 10; // set your cost per submission
 
     // Get the user's profile and credit
     let { data: profile, error } = await supabase
@@ -28,7 +28,7 @@ export default async function handler(req, res) {
       .from('profiles')
       .update({ credit: updatedCredit })
       .eq('id', userId);
-      
+
     if (updateError) {
       return res.status(500).json({ error: updateError.message });
     }
@@ -37,12 +37,12 @@ export default async function handler(req, res) {
     let thirdPartyResponse;
     try {
       thirdPartyResponse = await axios.post('https://thirdparty.example.com/process', formData);
-    } catch (err) {
-      return res.status(500).json({ error: 'Error processing form' });
+    } catch (error) {
+      return res.status(500).json({ error: error.message || 'Error processing form' });
     }
 
-    // Save form submission and result in Supabase
-    const { data: formSubmission, error: formError } = await supabase
+    // Save form submission and result in Supabase (no need to store the unused formSubmission variable)
+    const { error: formError } = await supabase
       .from('forms')
       .insert([{ user_id: userId, form_data: formData, result: thirdPartyResponse.data }]);
 

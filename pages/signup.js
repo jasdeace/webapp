@@ -1,3 +1,4 @@
+// pages/signup.js
 import { useState } from 'react';
 import { supabase } from '../utils/supabaseClient';
 
@@ -7,7 +8,7 @@ export default function Signup() {
 
   const handleSignup = async (e) => {
     e.preventDefault();
-    const { error, data } = await supabase.auth.signUp({ email, password });
+    const { error } = await supabase.auth.signUp({ email, password });
     if (error) {
       alert(error.message);
     } else {
