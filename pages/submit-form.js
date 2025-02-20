@@ -1,4 +1,3 @@
-// pages/submit-form.js
 import { useState, useEffect } from 'react';
 import { supabase } from '../utils/supabaseClient';
 
@@ -11,7 +10,11 @@ export default function SubmitForm() {
   // Get the current logged-in user
   useEffect(() => {
     async function getUser() {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (error) {
+        setError('Error fetching user: ' + error.message);
+        return;
+      }
       if (user) {
         setUserId(user.id);
       }
@@ -30,18 +33,18 @@ export default function SubmitForm() {
       const response = await fetch('/api/submit-form', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ userId, formData })
+        body: JSON.stringify({ userId, formData }),
       });
       const data = await response.json();
       if (!response.ok) {
-        setError(data.error);
+        setError(data.error || 'Form submission failed.');
       } else {
         setResult(data.result);
       }
-    } catch {
-      setError('An error occurred.');
+    } catch (err) {
+      setError('An error occurred: ' + err.message);
     }
   };
 
