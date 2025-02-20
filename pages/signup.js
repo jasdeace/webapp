@@ -7,6 +7,7 @@ export default function Signup() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
+  const [message, setMessage] = useState(null); // Add for success messages
   const router = useRouter();
 
   const handleSignup = async (e) => {
@@ -20,8 +21,11 @@ export default function Signup() {
       const { error: authError } = await supabase.auth.signUp({ email, password });
       if (authError) throw authError;
       setError(null);
-      alert('Sign up successful! Please check your email for verification.');
-      router.push('/login');
+      setMessage(
+        'Sign up successful! Please check your email for a verification link. The link will redirect you to ' +
+        'https://your-project-name.vercel.app.'
+      );
+      router.push('/login'); // Optionally redirect to login after signup
     } catch (err) {
       setError(err.message || 'Signup failed. Please try again.');
     }
@@ -31,6 +35,7 @@ export default function Signup() {
     <div style={{ maxWidth: '400px', margin: '2rem auto', textAlign: 'center' }}>
       <h1>Sign Up</h1>
       {error && <p style={{ color: 'red' }}>{error}</p>}
+      {message && <p style={{ color: 'green' }}>{message}</p>}
       <form onSubmit={handleSignup}>
         <input
           type="email"
