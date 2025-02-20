@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '../utils/supabaseClient';
 import { useRouter } from 'next/router';
-import Link from 'next/link'; // Import Link from next/link
+import Link from 'next/link';
 
 export default function Signup() {
   const [email, setEmail] = useState('');
@@ -17,7 +17,7 @@ export default function Signup() {
     }
 
     try {
-      const { data, error: authError } = await supabase.auth.signUp({ email, password });
+      const { error: authError } = await supabase.auth.signUp({ email, password });
       if (authError) throw authError;
       setError(null);
       alert('Sign up successful! Please check your email for verification.');
