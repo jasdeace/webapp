@@ -43,7 +43,7 @@ export default function TopUp() {
         .eq('user_id', userId)
         .single();
 
-      console.log('Credit Data:', creditData, 'Credit Error:', creditError); // Debug log
+      console.log('Credit Data (Before Update):', creditData, 'Credit Error:', creditError); // Debug log
 
       if (!creditData) {
         setMessage('No credit record found. Please contact support or sign up again.');
@@ -66,7 +66,7 @@ export default function TopUp() {
 
       const newCredit = currentCredit + parseInt(amount);
 
-      // Update credit balance
+      // Update credit balance and ensure we get the updated row
       const { data: updatedCredit, error: updateError } = await supabase
         .from('credits')
         .update({ credit_balance: newCredit })
@@ -77,6 +77,8 @@ export default function TopUp() {
           error: response.error,
         }));
 
+      console.log('Updated Credit Data:', updatedCredit, 'Update Error:', updateError); // Debug log
+
       if (updateError) {
         if (updateError.status === 406) {
           throw new Error('Supabase rejected the update. Check RLS policies or API headers.');
@@ -84,7 +86,9 @@ export default function TopUp() {
         throw updateError;
       }
 
-      setMessage(`Top-up successful! Your new balance is: ${updatedCredit.credit_balance} credits`);
+      // Handle case where updatedCredit might be null, fallback to newCredit
+      const finalCredit = updatedCredit?.credit_balance || newCredit;
+      setMessage(`Top-up successful! Your new balance is: ${finalCredit} credits`);
       setAmount(''); // Reset input
     } catch (err) {
       setMessage(`An error occurred during top-up: ${err.message}`);
