@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '../utils/supabaseClient';
 import { useRouter } from 'next/router';
+import Link from 'next/link'; // Import Link from next/link
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -10,23 +11,28 @@ export default function Login() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    if (!email || !password) {
+      setError('Please enter both email and password.');
+      return;
+    }
+
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) throw error;
+      const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password });
+      if (authError) throw authError;
       setError(null);
       alert('Logged in successfully!');
-      router.push('/submit-form'); // Redirect to submit form after login
+      router.push('/submit-form');
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Login failed. Please try again.');
     }
   };
 
   const handleGoogleLogin = async () => {
     try {
-      const { error } = await supabase.auth.signInWithOAuth({ provider: 'google' });
+      const { data, error } = await supabase.auth.signInWithOAuth({ provider: 'google' });
       if (error) throw error;
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Google login failed. Please try again.');
     }
   };
 
@@ -56,7 +62,10 @@ export default function Login() {
         Login with Google
       </button>
       <p>
-        Don’t have an account? <a href="/signup" style={{ color: 'blue' }}>Sign up here</a>
+        Don’t have an account?{' '}
+        <Link href="/signup">
+          <span style={{ color: 'blue', textDecoration: 'underline', cursor: 'pointer' }}>Sign up here</span>
+        </Link>
       </p>
     </div>
   );

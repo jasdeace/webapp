@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { supabase } from '../utils/supabaseClient';
 import { useRouter } from 'next/router';
+import Link from 'next/link'; // Import Link from next/link
 
 export default function Signup() {
   const [email, setEmail] = useState('');
@@ -10,14 +11,19 @@ export default function Signup() {
 
   const handleSignup = async (e) => {
     e.preventDefault();
+    if (!email || !password) {
+      setError('Please enter both email and password.');
+      return;
+    }
+
     try {
-      const { error } = await supabase.auth.signUp({ email, password });
-      if (error) throw error;
+      const { data, error: authError } = await supabase.auth.signUp({ email, password });
+      if (authError) throw authError;
       setError(null);
       alert('Sign up successful! Please check your email for verification.');
-      router.push('/login'); // Redirect to login after signup
+      router.push('/login');
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Signup failed. Please try again.');
     }
   };
 
@@ -43,7 +49,10 @@ export default function Signup() {
         <button type="submit" style={{ width: '100%', padding: '0.5rem' }}>Sign Up</button>
       </form>
       <p>
-        Already have an account? <a href="/login" style={{ color: 'blue' }}>Login here</a>
+        Already have an account?{' '}
+        <Link href="/login">
+          <span style={{ color: 'blue', textDecoration: 'underline', cursor: 'pointer' }}>Login here</span>
+        </Link>
       </p>
     </div>
   );
