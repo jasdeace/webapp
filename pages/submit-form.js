@@ -10,13 +10,13 @@ export default function SubmitForm() {
   // Get the current logged-in user
   useEffect(() => {
     async function getUser() {
-      const { data: { user }, error } = await supabase.auth.getUser();
-      if (error) {
-        setError('Error fetching user: ' + error.message);
-        return;
-      }
-      if (user) {
-        setUserId(user.id);
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          setUserId(user.id);
+        }
+      } catch (err) {
+        setError('Error fetching user: ' + err.message);
       }
     }
     getUser();

@@ -9,13 +9,13 @@ export default function TopUp() {
   // Get the current logged-in user
   useEffect(() => {
     async function getUser() {
-      const { data: { user }, error } = await supabase.auth.getUser();
-      if (error) {
-        setMessage('Error fetching user: ' + error.message);
-        return;
-      }
-      if (user) {
-        setUserId(user.id);
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          setUserId(user.id);
+        }
+      } catch (err) {
+        setMessage('Error fetching user: ' + err.message);
       }
     }
     getUser();
