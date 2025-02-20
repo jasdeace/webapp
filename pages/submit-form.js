@@ -23,7 +23,7 @@ export default function SubmitForm() {
         setUserId(user.id);
 
         // Fetch user's credit balance
-        const { data: creditData, error: creditError } = await supabase
+        const { data: credits, error: creditError } = await supabase
           .from('credits')
           .select('credit_balance')
           .eq('user_id', user.id)
@@ -31,7 +31,7 @@ export default function SubmitForm() {
 
         if (creditError) throw creditError;
 
-        setCredit(creditData.credit_balance || 0);
+        setCredit(credits.credit_balance || 0);
       } catch (err) {
         setError('Error checking authentication or credit: ' + err.message);
       }
