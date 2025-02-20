@@ -9,7 +9,7 @@ export default function SubmitForm() {
   const [userId, setUserId] = useState(null);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
-  const [credit, setCredit] = useState(0);
+  const [credit, setCredit] = useState(null); // Initialize as null to track absence
   const router = useRouter();
 
   useEffect(() => {
@@ -22,16 +22,35 @@ export default function SubmitForm() {
         }
         setUserId(user.id);
 
-        // Fetch user's credit balance
-        const { data: credits, error: creditError } = await supabase
+        // Fetch user's credit balance, fail if no row exists
+        const { data: creditData, error: creditError } = await supabase
           .from('credits')
           .select('credit_balance')
           .eq('user_id', user.id)
           .single();
 
-        if (creditError) throw creditError;
+        console.log('Credit Data:', creditData, 'Credit Error:', creditError); // Debug log
 
-        setCredit(credits.credit_balance || 0);
+        if (!creditData) {
+          setCredit(null); // No credits row exists
+          setError('No credit record found. Please contact support or sign up again.');
+          return;
+        }
+
+        if (creditError) {
+          if (creditError.code === 'PGRST116') { // No rows found
+            setCredit(null);
+            setError('No credit record found. Please contact support or sign up again.');
+          } else {
+            throw creditError;
+          }
+        } else {
+          setCredit(creditData.credit_balance);
+          if (creditData.credit_balance === null || creditData.credit_balance === undefined) {
+            setError('Invalid credit balance. Please contact support.');
+            setCredit(null);
+          }
+        }
       } catch (err) {
         setError('Error checking authentication or credit: ' + err.message);
       }
@@ -45,7 +64,7 @@ export default function SubmitForm() {
       setError('You must be logged in to submit the form.');
       return;
     }
-    if (credit <= 0) {
+    if (credit === null || credit <= 0) {
       setError('Insufficient credits. Please top up before submitting.');
       return;
     }
@@ -62,6 +81,8 @@ export default function SubmitForm() {
           error: response.error,
         }));
 
+      console.log('Updated Credit Data:', updatedCredit, 'Update Error:', updateError); // Debug log
+
       if (updateError) {
         if (updateError.status === 406) {
           throw new Error('Supabase rejected the update. Check RLS policies or API headers.');
@@ -69,7 +90,9 @@ export default function SubmitForm() {
         throw updateError;
       }
 
-      setCredit(updatedCredit.credit_balance); // Update local state
+      // Handle case where updatedCredit might be null, fallback to credit - 1
+      const finalCredit = updatedCredit?.credit_balance || (credit - 1);
+      setCredit(finalCredit);
 
       // Submit the form
       const response = await fetch('/api/submit-form', {

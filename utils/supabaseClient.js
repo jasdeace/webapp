@@ -8,4 +8,8 @@ if (!supabaseUrl || !supabaseKey) {
   throw new Error('Missing Supabase URL or Anon Key in environment variables.');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseKey);
+export const supabase = createClient(supabaseUrl, supabaseKey, {
+  headers: {
+    Prefer: 'return=representation', // Ensures Supabase returns the updated row
+  },
+});
