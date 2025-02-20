@@ -36,31 +36,22 @@ export default function TopUp() {
       return;
     }
     try {
-      // Fetch or create user's credit balance
-      let { data: creditData, error: creditError } = await supabase
+      // Fetch user's credit balance, fail if no row exists
+      const { data: credits, error: creditError } = await supabase
         .from('credits')
         .select('credit_balance')
         .eq('user_id', userId)
         .single();
 
-      if (creditError && creditError.code === 'PGRST116') { // No rows found
-        // Insert a new credits row with 0 balance if none exists
-        const { error: insertError } = await supabase
-          .from('credits')
-          .insert({ user_id: userId, credit_balance: 0 });
-        if (insertError) throw insertError;
-
-        // Fetch the newly inserted row
-        ({ data: creditData } = await supabase
-          .from('credits')
-          .select('credit_balance')
-          .eq('user_id', userId)
-          .single());
-      } else if (creditError) {
+      if (creditError) {
+        if (creditError.code === 'PGRST116') { // No rows found
+          setMessage('No credit record found. Please contact support or sign up again.');
+          return;
+        }
         throw creditError;
       }
 
-      const currentCredit = creditData.credit_balance || 0;
+      const currentCredit = credits.credit_balance || 0;
       const newCredit = currentCredit + parseInt(amount);
 
       // Update credit balance with proper headers
