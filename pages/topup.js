@@ -40,7 +40,7 @@ export default function TopUp() {
       } else {
         setMessage('Top-up successful! Your new balance is: ' + data.newCredit);
       }
-    } catch (_err) {
+    } catch {
       setMessage('An error occurred during top-up.');
     }
   };

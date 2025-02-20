@@ -40,7 +40,7 @@ export default function SubmitForm() {
       } else {
         setResult(data.result);
       }
-    } catch (_err) {
+    } catch {
       setError('An error occurred.');
     }
   };
