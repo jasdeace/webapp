@@ -63,19 +63,28 @@ export default function TopUp() {
       const currentCredit = creditData.credit_balance || 0;
       const newCredit = currentCredit + parseInt(amount);
 
-      // Update credit balance
+      // Update credit balance with proper headers
       const { data: updatedCredit, error: updateError } = await supabase
         .from('credits')
         .update({ credit_balance: newCredit })
         .eq('user_id', userId)
-        .single();
+        .single()
+        .then(response => ({
+          data: response.data,
+          error: response.error,
+        }));
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        if (updateError.status === 406) {
+          throw new Error('Supabase rejected the update. Check RLS policies or API headers.');
+        }
+        throw updateError;
+      }
 
       setMessage(`Top-up successful! Your new balance is: ${updatedCredit.credit_balance} credits`);
       setAmount(''); // Reset input
     } catch (err) {
-      setMessage('An error occurred during top-up: ' + err.message);
+      setMessage(`An error occurred during top-up: ${err.message}`);
     }
   };
 

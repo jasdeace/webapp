@@ -56,9 +56,18 @@ export default function SubmitForm() {
         .from('credits')
         .update({ credit_balance: credit - 1 })
         .eq('user_id', userId)
-        .single();
+        .single()
+        .then(response => ({
+          data: response.data,
+          error: response.error,
+        }));
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        if (updateError.status === 406) {
+          throw new Error('Supabase rejected the update. Check RLS policies or API headers.');
+        }
+        throw updateError;
+      }
 
       setCredit(updatedCredit.credit_balance); // Update local state
 
