@@ -1,3 +1,4 @@
+// pages/topup.js
 import { useState, useEffect } from 'react';
 import { supabase } from '../utils/supabaseClient';
 
@@ -9,13 +10,9 @@ export default function TopUp() {
   // Get the current logged-in user
   useEffect(() => {
     async function getUser() {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          setUserId(user.id);
-        }
-      } catch (err) {
-        setMessage('Error fetching user: ' + err.message);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUserId(user.id);
       }
     }
     getUser();
@@ -35,16 +32,17 @@ export default function TopUp() {
       const response = await fetch('/api/topup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, amount: parseFloat(amount) }),
+        body: JSON.stringify({ userId, amount: parseFloat(amount) })
       });
       const data = await response.json();
       if (!response.ok) {
-        setMessage(data.error || 'Top-up failed.');
+        setMessage(data.error);
       } else {
         setMessage('Top-up successful! Your new balance is: ' + data.newCredit);
       }
-    } catch (err) {
-      setMessage('An error occurred during top-up: ' + err.message);
+    } catch (_err) {
+      console.error(_err); // Use _err to prevent the unused variable error
+      setMessage('An error occurred during top-up.');
     }
   };
 
