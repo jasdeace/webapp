@@ -31,7 +31,7 @@ export default function SubmitForm() {
           .eq('user_id', user.id)
           .single();
 
-        console.log('Credit Data:', creditData, 'Credit Error:', creditError); // Debug credits
+        console.log('Credit Data (Initial):', creditData, 'Credit Error:', creditError); // Debug credits
 
         if (!creditData) {
           setCredit(null); // No credits row exists
@@ -106,10 +106,23 @@ export default function SubmitForm() {
         .select('credit_balance')
         .eq('user_id', userId)
         .single();
+
       console.log('Post-Update Credit Data:', postUpdateCredit, 'Post-Update Error:', postUpdateError);
 
       if (postUpdateError || !postUpdateCredit) {
         setError('Credit record not found after update. Please contact support.');
+        // Roll back credit
+        await supabase
+          .from('credits')
+          .update({ credit_balance: credit })
+          .eq('user_id', userId);
+        setCredit(credit);
+        return;
+      }
+
+      // Ensure post-update credit matches expected value
+      if (postUpdateCredit.credit_balance !== finalCredit) {
+        setError('Credit balance mismatch after update. Please contact support.');
         // Roll back credit
         await supabase
           .from('credits')

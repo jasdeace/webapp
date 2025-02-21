@@ -42,7 +42,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Credit record not found' });
     }
 
-    // Ensure credit_balance matches the expected value (e.g., 10 after deduction)
+    // Ensure credit_balance matches the expected value (e.g., 10)
     if (creditData.credit_balance !== credit_balance) {
       return res.status(400).json({ error: 'Credit balance mismatch' });
     }
