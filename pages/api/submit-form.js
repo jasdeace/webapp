@@ -37,6 +37,9 @@ export default async function handler(req, res) {
       return res.status(403).json({ error: 'Unauthorized: User ID mismatch' });
     }
 
+    // Set the auth context for the Supabase client to ensure RLS uses auth.uid()
+    supabase.auth.setAuth(token); // Explicitly set the token for the client
+
     // Verify credits with Prefer: return=representation and ensure RLS visibility
     const { data: creditData, error: creditError } = await supabase
       .from('credits')
