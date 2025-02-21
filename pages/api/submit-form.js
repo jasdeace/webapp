@@ -29,7 +29,7 @@ export default async function handler(req, res) {
     console.log('API Auth User Data:', user, 'Auth User Error:', userError); // Debug auth
 
     if (userError || !user) {
-      return res.status(401).json({ error: 'User not found or unauthorized' });
+      return res.status(401).json({ error: 'User not found or unauthorized: ' + (userError?.message || 'No user data') });
     }
 
     // Verify userId matches the authenticated user
@@ -47,15 +47,19 @@ export default async function handler(req, res) {
       .eq('user_id', userId)
       .single();
 
-    console.log('API Credit Data:', creditData, 'Credit Error:', creditError); // Debug credits query
+    console.log('API Credit Data (Initial):', creditData, 'Credit Error:', creditError); // Debug credits query
 
-    if (creditError || !creditData) {
-      return res.status(400).json({ error: 'Credit record not found' });
+    if (creditError) {
+      return res.status(400).json({ error: 'Credit record not found: ' + creditError.message });
+    }
+
+    if (!creditData) {
+      return res.status(400).json({ error: 'Credit record not found: No data returned' });
     }
 
     // Ensure credit_balance matches the expected value (e.g., 10)
     if (creditData.credit_balance !== credit_balance) {
-      return res.status(400).json({ error: 'Credit balance mismatch' });
+      return res.status(400).json({ error: 'Credit balance mismatch: Expected ' + credit_balance + ', got ' + creditData.credit_balance });
     }
 
     // Add a small delay to ensure update visibility (temporary debug)
@@ -70,26 +74,31 @@ export default async function handler(req, res) {
 
     console.log('Final API Credit Data:', finalCreditData, 'Final Credit Error:', finalCreditError);
 
-    if (finalCreditError || !finalCreditData) {
-      return res.status(400).json({ error: 'Credit record not found after verification' });
+    if (finalCreditError) {
+      return res.status(400).json({ error: 'Credit record not found after verification: ' + finalCreditError.message });
+    }
+
+    if (!finalCreditData) {
+      return res.status(400).json({ error: 'Credit record not found after verification: No data returned' });
     }
 
     if (finalCreditData.credit_balance !== credit_balance) {
-      return res.status(400).json({ error: 'Credit balance mismatch after verification' });
+      return res.status(400).json({ error: 'Credit balance mismatch after verification: Expected ' + credit_balance + ', got ' + finalCreditData.credit_balance });
     }
 
-    // Process form data (e.g., save to 'forms' table)
+    // Verify the forms table exists and RLS allows inserts (if enabled)
     const { error: formError } = await supabase
       .from('forms') // Assuming a 'forms' table for submissions
       .insert({ user_id: userId, form_data: formData, credit_balance: credit_balance });
 
     if (formError) {
-      throw formError;
+      console.error('Forms Insert Error:', formError); // Log the specific error
+      return res.status(500).json({ error: 'Failed to save form data: ' + formError.message });
     }
 
     res.status(200).json({ result: 'Form submitted successfully', credit_balance: finalCreditData.credit_balance });
   } catch (err) {
-    console.error('API Error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error('API Error:', err); // Log the full error
+    res.status(500).json({ error: 'Internal server error: ' + (err.message || 'Unknown error') });
   }
 }

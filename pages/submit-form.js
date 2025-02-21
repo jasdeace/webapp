@@ -137,27 +137,29 @@ export default function SubmitForm() {
       console.log('Submitting Form Data:', { userId, formData, credit_balance: finalCredit, sessionToken: session?.access_token });
 
       // Submit the form, including auth token in headers
-      const response = await fetch('/api/submit-form', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session?.access_token}`, // Add auth token
-        },
-        body: JSON.stringify({ userId, formData, credit_balance: finalCredit }),
-      });
-      const data = await response.json();
-      console.log('API Response:', data); // Debug API response
-      if (!response.ok) {
-        // Roll back credit if submission fails
-        await supabase
-          .from('credits')
-          .update({ credit_balance: credit })
-          .eq('user_id', userId);
-        setCredit(credit); // Restore local state
-        setError(data.error || 'Form submission failed.');
-      } else {
-        setResult(data.result);
-      }
+      // pages/submit-form.js (minimal changes for debugging)
+const response = await fetch('/api/submit-form', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${session?.access_token}`, // Ensure this matches logs
+    },
+    body: JSON.stringify({ userId, formData, credit_balance: finalCredit }),
+  });
+  const data = await response.json();
+  console.log('Full API Response:', { status: response.status, data }); // Debug full response
+  if (!response.ok) {
+    // Roll back credit if submission fails
+    await supabase
+      .from('credits')
+      .update({ credit_balance: credit })
+      .eq('user_id', userId);
+    setCredit(credit); // Restore local state
+    setError(data.error || 'Form submission failed.');
+  } else {
+    setResult(data.result);
+  }
+      
     } catch (err) {
       setError('An error occurred: ' + err.message);
       // Roll back credit on error
