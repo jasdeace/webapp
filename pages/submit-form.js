@@ -1,46 +1,42 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../utils/supabaseClient'; // Adjust path if needed
+import { supabase } from '../utils/supabaseClient';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
-import AuthenticatedLayout from '../components/AuthenticatedLayout'; // Adjust path if needed
+import AuthenticatedLayout from '../components/AuthenticatedLayout';
 
 export default function SubmitForm() {
   const [formData, setFormData] = useState('');
   const [userId, setUserId] = useState(null);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
-  const [credit, setCredit] = useState(null); // Initialize as null to track absence
+  const [credit, setCredit] = useState(null);
   const router = useRouter();
 
   useEffect(() => {
     async function checkUserAndCredit() {
       try {
         const { data: { user }, error: userError } = await supabase.auth.getUser();
-        console.log('Auth User Data:', user, 'Auth User Error:', userError); // Debug auth
-
+        console.log('[useEffect] Auth User Response:', { user, userError }); // Debug 1: Auth fetch
         if (userError || !user) {
           router.push('/login');
           return;
         }
         setUserId(user.id);
 
-        // Fetch user's credit balance, fail if no row exists
         const { data: creditData, error: creditError } = await supabase
           .from('credits')
           .select('credit_balance')
           .eq('user_id', user.id)
           .single();
-
-        console.log('Credit Data (Initial):', creditData, 'Credit Error:', creditError); // Debug credits
+        console.log('[useEffect] Credit Fetch Response:', { creditData, creditError }); // Debug 2: Initial credit fetch
 
         if (!creditData) {
-          setCredit(null); // No credits row exists
+          setCredit(null);
           setError('No credit record found. Please contact support or sign up again.');
           return;
         }
-
         if (creditError) {
-          if (creditError.code === 'PGRST116') { // No rows found
+          if (creditError.code === 'PGRST116') {
             setCredit(null);
             setError('No credit record found. Please contact support or sign up again.');
           } else {
@@ -55,6 +51,7 @@ export default function SubmitForm() {
         }
       } catch (err) {
         setError('Error checking authentication or credit: ' + err.message);
+        console.error('[useEffect] Error:', err); // Debug 3: Catch block
       }
     }
     checkUserAndCredit();
@@ -72,46 +69,34 @@ export default function SubmitForm() {
     }
     setError(null);
     try {
-      // Deduct 1 credit before submission
+      // Deduct 1 credit
       const { data: updatedCredit, error: updateError } = await supabase
         .from('credits')
         .update({ credit_balance: credit - 1 })
         .eq('user_id', userId)
-        .single()
-        .then(response => ({
-          data: response.data,
-          error: response.error,
-        }));
-
-      console.log('Updated Credit Data:', updatedCredit, 'Update Error:', updateError); // Debug update
+        .select() // Ensure data is returned
+        .single();
+      console.log('[handleSubmit] Credit Update Response:', { updatedCredit, updateError }); // Debug 4: Credit update
 
       if (updateError) {
-        if (updateError.status === 406) {
-          throw new Error('Supabase rejected the update. Check RLS policies or API headers.');
-        }
-        throw updateError;
+        throw new Error('Credit update failed: ' + updateError.message);
       }
-
-      // Handle case where updatedCredit might be null, fallback to credit - 1
-      const finalCredit = updatedCredit?.credit_balance || (credit - 1);
-      if (finalCredit === null || finalCredit === undefined) {
-        setError('Failed to update credit balance. Please contact support.');
-        return;
+      if (!updatedCredit) {
+        throw new Error('No credit data returned after update');
       }
+      const finalCredit = updatedCredit.credit_balance;
       setCredit(finalCredit);
 
-      // Verify credit record after update to ensure it exists
+      // Verify credit after update
       const { data: postUpdateCredit, error: postUpdateError } = await supabase
         .from('credits')
         .select('credit_balance')
         .eq('user_id', userId)
         .single();
-
-      console.log('Post-Update Credit Data:', postUpdateCredit, 'Post-Update Error:', postUpdateError);
+      console.log('[handleSubmit] Post-Update Credit Verify:', { postUpdateCredit, postUpdateError }); // Debug 5: Post-update check
 
       if (postUpdateError || !postUpdateCredit) {
-        setError('Credit record not found after update. Please contact support.');
-        // Roll back credit
+        setError('Credit record not found after update. Rolling back.');
         await supabase
           .from('credits')
           .update({ credit_balance: credit })
@@ -119,11 +104,8 @@ export default function SubmitForm() {
         setCredit(credit);
         return;
       }
-
-      // Ensure post-update credit matches expected value
       if (postUpdateCredit.credit_balance !== finalCredit) {
-        setError('Credit balance mismatch after update. Please contact support.');
-        // Roll back credit
+        setError('Credit balance mismatch after update. Rolling back.');
         await supabase
           .from('credits')
           .update({ credit_balance: credit })
@@ -132,47 +114,45 @@ export default function SubmitForm() {
         return;
       }
 
-      // Debug payload before API call, including auth token
+      // API call
       const { data: { session } } = await supabase.auth.getSession();
-      console.log('Submitting Form Data:', { userId, formData, credit_balance: finalCredit, sessionToken: session?.access_token });
+      const requestPayload = { userId, formData, credit_balance: finalCredit };
+      console.log('[handleSubmit] API Request Payload:', { ...requestPayload, sessionToken: session?.access_token }); // Debug 6: Before API call
 
-      // Submit the form, including auth token in headers
-      // pages/submit-form.js (minimal changes for debugging)
-const response = await fetch('/api/submit-form', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${session?.access_token}`, // Ensure this matches logs
-    },
-    body: JSON.stringify({ userId, formData, credit_balance: finalCredit }),
-  });
-  const data = await response.json();
-  console.log('Full API Response:', { status: response.status, data }); // Debug full response
-  if (!response.ok) {
-    // Roll back credit if submission fails
-    await supabase
-      .from('credits')
-      .update({ credit_balance: credit })
-      .eq('user_id', userId);
-    setCredit(credit); // Restore local state
-    setError(data.error || 'Form submission failed.');
-  } else {
-    setResult(data.result);
-  }
-      
+      const response = await fetch('/api/submit-form', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`,
+        },
+        body: JSON.stringify(requestPayload),
+      });
+      const data = await response.json();
+      console.log('[handleSubmit] API Response:', { status: response.status, data }); // Debug 7: API response
+
+      if (!response.ok) {
+        await supabase
+          .from('credits')
+          .update({ credit_balance: credit })
+          .eq('user_id', userId);
+        setCredit(credit);
+        setError(data.error || 'Form submission failed.');
+      } else {
+        setResult(data.result);
+      }
     } catch (err) {
       setError('An error occurred: ' + err.message);
-      // Roll back credit on error
       await supabase
         .from('credits')
         .update({ credit_balance: credit })
         .eq('user_id', userId);
-      setCredit(credit); // Restore local state
+      setCredit(credit);
+      console.error('[handleSubmit] Error:', err); // Debug 8: Catch block
     }
   };
 
   if (!userId) {
-    return <div>Loading...</div>; // Or a loading spinner
+    return <div>Loading...</div>;
   }
 
   return (
