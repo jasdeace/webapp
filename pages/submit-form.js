@@ -100,15 +100,19 @@ export default function SubmitForm() {
       }
       setCredit(finalCredit);
 
+      // Debug payload before API call
+      console.log('Submitting Form Data:', { userId, formData });
+
       // Submit the form
       const response = await fetch('/api/submit-form', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ userId, formData }),
+        body: JSON.stringify({ userId, formData, credit_balance: finalCredit }), // Include credit_balance for clarity
       });
       const data = await response.json();
+      console.log('API Response:', data); // Debug API response
       if (!response.ok) {
         // Roll back credit if submission fails
         await supabase
