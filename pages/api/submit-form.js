@@ -1,57 +1,48 @@
-// pages/api/submit-form.js
-import { supabase } from '../../utils/supabaseClient';
-import axios from 'axios';
+// api/submit-form.js
+import { supabase } from '../../utils/supabaseClient'; // Adjust path if needed
 
 export default async function handler(req, res) {
-  if (req.method === 'POST') {
-    const { userId, formData } = req.body;
-    const creditCost = 10; // set your cost per submission
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
 
-    // Get the user's profile and credit
-    let { data: profile, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .single();
+  const { userId, formData, credit_balance } = req.body;
 
-    if (error || !profile) {
+  if (!userId || !formData) {
+    return res.status(400).json({ error: 'Missing userId or formData' });
+  }
+
+  try {
+    // Verify the user exists in auth.users
+    const { data: user, error: userError } = await supabase.auth.getUser(userId);
+
+    if (userError || !user) {
       return res.status(400).json({ error: 'User not found' });
     }
 
-    if (profile.credit < creditCost) {
-      return res.status(400).json({ error: 'Insufficient credit' });
+    // Optionally verify credits (though client already checks)
+    const { data: creditData, error: creditError } = await supabase
+      .from('credits')
+      .select('credit_balance')
+      .eq('user_id', userId)
+      .single();
+
+    if (creditError || !creditData) {
+      return res.status(400).json({ error: 'Credit record not found' });
     }
 
-    // Deduct credit
-    const updatedCredit = profile.credit - creditCost;
-    const { error: updateError } = await supabase
-      .from('profiles')
-      .update({ credit: updatedCredit })
-      .eq('id', userId);
-
-    if (updateError) {
-      return res.status(500).json({ error: updateError.message });
-    }
-
-    // Send form data to third-party processing (replace the URL with your actual endpoint)
-    let thirdPartyResponse;
-    try {
-      thirdPartyResponse = await axios.post('https://thirdparty.example.com/process', formData);
-    } catch (error) {
-      return res.status(500).json({ error: error.message || 'Error processing form' });
-    }
-
-    // Save form submission and result in Supabase (no need to store the unused formSubmission variable)
+    // Process form data (e.g., save to another table like 'forms')
     const { error: formError } = await supabase
-      .from('forms')
-      .insert([{ user_id: userId, form_data: formData, result: thirdPartyResponse.data }]);
+      .from('forms') // Assuming a 'forms' table for submissions
+      .insert({ user_id: userId, form_data: formData, credit_balance: credit_balance });
 
     if (formError) {
-      return res.status(500).json({ error: formError.message });
+      throw formError;
     }
 
-    return res.status(200).json({ message: 'Form processed', result: thirdPartyResponse.data });
-  } else {
-    res.status(405).json({ error: 'Method not allowed' });
+    res.status(200).json({ result: 'Form submitted successfully', credit_balance: creditData.credit_balance });
+  } catch (err) {
+    console.error('API Error:', err);
+    res.status(500).json({ error: 'Internal server error' });
   }
 }
