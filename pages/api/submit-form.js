@@ -13,14 +13,25 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Verify the user exists in auth.users
-    const { data: user, error: userError } = await supabase.auth.getUser(userId);
-
-    if (userError || !user) {
-      return res.status(400).json({ error: 'User not found' });
+    // Get the auth token from the Authorization header
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Unauthorized: No valid auth token' });
     }
 
-    // Optionally verify credits (though client already checks)
+    const token = authHeader.split('Bearer ')[1];
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+
+    if (userError || !user) {
+      return res.status(401).json({ error: 'User not found or unauthorized' });
+    }
+
+    // Verify userId matches the authenticated user
+    if (user.id !== userId) {
+      return res.status(403).json({ error: 'Unauthorized: User ID mismatch' });
+    }
+
+    // Optionally verify credits
     const { data: creditData, error: creditError } = await supabase
       .from('credits')
       .select('credit_balance')
@@ -31,7 +42,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Credit record not found' });
     }
 
-    // Process form data (e.g., save to another table like 'forms')
+    // Process form data (e.g., save to 'forms' table)
     const { error: formError } = await supabase
       .from('forms') // Assuming a 'forms' table for submissions
       .insert({ user_id: userId, form_data: formData, credit_balance: credit_balance });

@@ -100,16 +100,18 @@ export default function SubmitForm() {
       }
       setCredit(finalCredit);
 
-      // Debug payload before API call
-      console.log('Submitting Form Data:', { userId, formData, credit_balance: finalCredit });
+      // Debug payload before API call, including auth token for context
+      const { data: { session } } = await supabase.auth.getSession();
+      console.log('Submitting Form Data:', { userId, formData, credit_balance: finalCredit, sessionToken: session?.access_token });
 
-      // Submit the form
+      // Submit the form, including auth token in headers
       const response = await fetch('/api/submit-form', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`, // Add auth token
         },
-        body: JSON.stringify({ userId, formData, credit_balance: finalCredit }), // Include credit_balance
+        body: JSON.stringify({ userId, formData, credit_balance: finalCredit }),
       });
       const data = await response.json();
       console.log('API Response:', data); // Debug API response
