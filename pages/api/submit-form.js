@@ -2,9 +2,7 @@ import { supabase } from '../../utils/supabaseClient';
 
 export default async function handler(req, res) {
   console.log('API Start:', req.body);
-
-  const { userId, formData, credit_balance } = req.body;
-  console.log('API Request Body:', { userId, formData, credit_balance });
+  const { userId, formData } = req.body;
 
   if (!userId || !formData) {
     return res.status(400).json({ error: 'Missing userId or formData' });
@@ -12,16 +10,12 @@ export default async function handler(req, res) {
 
   try {
     const authHeader = req.headers.authorization;
-    console.log('API Authorization Header:', authHeader);
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return res.status(401).json({ error: 'Unauthorized: No valid auth token' });
     }
 
     const token = authHeader.split('Bearer ')[1];
-    console.log('API Token:', token);
-
     const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-    console.log('API Auth User Data:', user, 'Auth User Error:', userError);
     if (userError || !user) {
       return res.status(401).json({ error: 'Unauthorized: ' + (userError?.message || 'No user data') });
     }
@@ -30,35 +24,37 @@ export default async function handler(req, res) {
       return res.status(403).json({ error: 'Unauthorized: User ID mismatch' });
     }
 
-    // No need for setAuth with service role key
-    console.log('API Before Credits Query:', { userId });
     const { data: creditData, error: creditError } = await supabase
       .from('credits')
       .select('credit_balance')
       .eq('user_id', userId)
       .single();
-    console.log('API Credit Data:', creditData, 'Credit Error:', creditError);
     if (creditError) {
       return res.status(400).json({ error: 'Credit check failed: ' + creditError.message });
     }
-    if (!creditData) {
-      return res.status(400).json({ error: 'No credit record found' });
+    if (!creditData || creditData.credit_balance <= 0) {
+      return res.status(400).json({ error: 'Insufficient credits' });
     }
 
-    if (creditData.credit_balance !== credit_balance) {
-      return res.status(400).json({ error: `Credit balance mismatch: Expected ${credit_balance}, got ${creditData.credit_balance}` });
+    const newBalance = creditData.credit_balance - 1;
+    const { error: creditUpdateError } = await supabase
+      .from('credits')
+      .update({ credit_balance: newBalance })
+      .eq('user_id', userId);
+    if (creditUpdateError) {
+      return res.status(500).json({ error: 'Failed to update credits: ' + creditUpdateError.message });
     }
 
-    console.log('API Before Forms Insert:', { userId });
     const { error: formError } = await supabase
       .from('forms')
-      .insert({ user_id: userId, form_data: formData, credit_balance: credit_balance });
-    console.log('Form Insert Error:', formError);
+      .insert({ user_id: userId, form_data: formData });
     if (formError) {
+      // Rollback credit on failure
+      await supabase.from('credits').update({ credit_balance: creditData.credit_balance }).eq('user_id', userId);
       return res.status(500).json({ error: 'Failed to save form: ' + formError.message });
     }
 
-    res.status(200).json({ result: 'Form submitted successfully', credit_balance: creditData.credit_balance });
+    res.status(200).json({ result: 'Form submitted successfully', credit_balance: newBalance });
   } catch (err) {
     console.error('API Full Error:', err.stack || err);
     res.status(500).json({ error: 'Internal server error: ' + (err.message || 'Unknown error') });
