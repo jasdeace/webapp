@@ -16,6 +16,8 @@ export default function SubmitForm() {
     async function checkUserAndCredit() {
       try {
         const { data: { user }, error: userError } = await supabase.auth.getUser();
+        console.log('Auth User Data:', user, 'Auth User Error:', userError); // Debug auth
+
         if (userError || !user) {
           router.push('/login');
           return;
@@ -29,7 +31,7 @@ export default function SubmitForm() {
           .eq('user_id', user.id)
           .single();
 
-        console.log('Credit Data:', creditData, 'Credit Error:', creditError); // Debug log
+        console.log('Credit Data:', creditData, 'Credit Error:', creditError); // Debug credits
 
         if (!creditData) {
           setCredit(null); // No credits row exists
@@ -81,7 +83,7 @@ export default function SubmitForm() {
           error: response.error,
         }));
 
-      console.log('Updated Credit Data:', updatedCredit, 'Update Error:', updateError); // Debug log
+      console.log('Updated Credit Data:', updatedCredit, 'Update Error:', updateError); // Debug update
 
       if (updateError) {
         if (updateError.status === 406) {
@@ -92,6 +94,10 @@ export default function SubmitForm() {
 
       // Handle case where updatedCredit might be null, fallback to credit - 1
       const finalCredit = updatedCredit?.credit_balance || (credit - 1);
+      if (finalCredit === null || finalCredit === undefined) {
+        setError('Failed to update credit balance. Please contact support.');
+        return;
+      }
       setCredit(finalCredit);
 
       // Submit the form
