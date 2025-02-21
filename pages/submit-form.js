@@ -100,7 +100,26 @@ export default function SubmitForm() {
       }
       setCredit(finalCredit);
 
-      // Debug payload before API call, including auth token for context
+      // Verify credit record after update to ensure it exists
+      const { data: postUpdateCredit, error: postUpdateError } = await supabase
+        .from('credits')
+        .select('credit_balance')
+        .eq('user_id', userId)
+        .single();
+      console.log('Post-Update Credit Data:', postUpdateCredit, 'Post-Update Error:', postUpdateError);
+
+      if (postUpdateError || !postUpdateCredit) {
+        setError('Credit record not found after update. Please contact support.');
+        // Roll back credit
+        await supabase
+          .from('credits')
+          .update({ credit_balance: credit })
+          .eq('user_id', userId);
+        setCredit(credit);
+        return;
+      }
+
+      // Debug payload before API call, including auth token
       const { data: { session } } = await supabase.auth.getSession();
       console.log('Submitting Form Data:', { userId, formData, credit_balance: finalCredit, sessionToken: session?.access_token });
 

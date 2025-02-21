@@ -31,7 +31,7 @@ export default async function handler(req, res) {
       return res.status(403).json({ error: 'Unauthorized: User ID mismatch' });
     }
 
-    // Optionally verify credits
+    // Verify credits with Prefer: return=representation
     const { data: creditData, error: creditError } = await supabase
       .from('credits')
       .select('credit_balance')
@@ -40,6 +40,11 @@ export default async function handler(req, res) {
 
     if (creditError || !creditData) {
       return res.status(400).json({ error: 'Credit record not found' });
+    }
+
+    // Ensure credit_balance matches the expected value (e.g., 10 after deduction)
+    if (creditData.credit_balance !== credit_balance) {
+      return res.status(400).json({ error: 'Credit balance mismatch' });
     }
 
     // Process form data (e.g., save to 'forms' table)
