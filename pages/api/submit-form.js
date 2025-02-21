@@ -15,11 +15,15 @@ export default async function handler(req, res) {
   try {
     // Get the auth token from the Authorization header
     const authHeader = req.headers.authorization;
+    console.log('API Authorization Header:', authHeader); // Debug auth header
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return res.status(401).json({ error: 'Unauthorized: No valid auth token' });
     }
 
     const token = authHeader.split('Bearer ')[1];
+    console.log('API Token:', token); // Debug token
+
+    // Set the Supabase client with the auth token for RLS context
     const { data: { user }, error: userError } = await supabase.auth.getUser(token);
 
     console.log('API Auth User Data:', user, 'Auth User Error:', userError); // Debug auth
