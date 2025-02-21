@@ -22,6 +22,8 @@ export default async function handler(req, res) {
     const token = authHeader.split('Bearer ')[1];
     const { data: { user }, error: userError } = await supabase.auth.getUser(token);
 
+    console.log('API Auth User Data:', user, 'Auth User Error:', userError); // Debug auth
+
     if (userError || !user) {
       return res.status(401).json({ error: 'User not found or unauthorized' });
     }
@@ -38,7 +40,7 @@ export default async function handler(req, res) {
       .eq('user_id', userId)
       .single();
 
-    console.log('API Credit Data:', creditData, 'Credit Error:', creditError); // Debug API query
+    console.log('API Credit Data:', creditData, 'Credit Error:', creditError); // Debug credits query
 
     if (creditError || !creditData) {
       return res.status(400).json({ error: 'Credit record not found' });
@@ -49,16 +51,36 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Credit balance mismatch' });
     }
 
+    // Add a small delay to ensure update visibility (temporary debug)
+    await new Promise(resolve => setTimeout(resolve, 1000)); // 1-second delay
+
+    // Re-verify credits after delay to ensure visibility
+    const { data: finalCreditData, error: finalCreditError } = await supabase
+      .from('credits')
+      .select('credit_balance')
+      .eq('user_id', userId)
+      .single();
+
+    console.log('Final API Credit Data:', finalCreditData, 'Final Credit Error:', finalCreditError);
+
+    if (finalCreditError || !finalCreditData) {
+      return res.status(400).json({ error: 'Credit record not found after verification' });
+    }
+
+    if (finalCreditData.credit_balance !== credit_balance) {
+      return res.status(400).json({ error: 'Credit balance mismatch after verification' });
+    }
+
     // Process form data (e.g., save to 'forms' table)
     const { error: formError } = await supabase
       .from('forms') // Assuming a 'forms' table for submissions
-      .insert({ user_id: userId, form_data: formData, credit_balance: creditData.credit_balance });
+      .insert({ user_id: userId, form_data: formData, credit_balance: credit_balance });
 
     if (formError) {
       throw formError;
     }
 
-    res.status(200).json({ result: 'Form submitted successfully', credit_balance: creditData.credit_balance });
+    res.status(200).json({ result: 'Form submitted successfully', credit_balance: finalCreditData.credit_balance });
   } catch (err) {
     console.error('API Error:', err);
     res.status(500).json({ error: 'Internal server error' });
