@@ -1,3 +1,5 @@
+[![Vercel Status](https://img.shields.io/badge/Vercel-Active-brightgreen)](https://webapp-sand-sigma.vercel.app)
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
@@ -40,3 +42,9 @@ This is a test commit to verify Git configuration.
 
 ## Deployment Status
 This application is deployed on Vercel and can be accessed at [webapp-sand-sigma.vercel.app](https://webapp-sand-sigma.vercel.app).
+
+## Latest Activity
+- Last Updated: March 14, 2024 at 15:30 UTC
+- Status: Active
+- Branch: main
+- Environment: Production
