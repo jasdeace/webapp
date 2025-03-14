@@ -18,8 +18,35 @@ export default function TopUp() {
           return;
         }
         setUserId(user.id);
+
+        // First try to create a credit record if it doesn't exist
+        const { error: insertError } = await supabase
+          .from('credits')
+          .insert([{ user_id: user.id, credit_balance: 0 }])
+          .select()
+          .maybeSingle();
+
+        // If error is not duplicate key violation, it's unexpected
+        if (insertError && !insertError.message?.includes('duplicate key')) {
+          console.error('Error initializing credits:', insertError);
+          setMessage('Error initializing credits: ' + insertError.message);
+        }
+
+        // Fetch current credit balance
+        const { data: creditData, error: fetchError } = await supabase
+          .from('credits')
+          .select('credit_balance')
+          .eq('user_id', user.id)
+          .single();
+
+        if (fetchError) {
+          throw fetchError;
+        }
+
+        console.log('Current credit balance:', creditData?.credit_balance);
       } catch (err) {
-        setMessage('Error fetching user: ' + err.message);
+        console.error('Error in checkUser:', err);
+        setMessage('Error checking user credits: ' + err.message);
       }
     }
     checkUser();
@@ -36,61 +63,39 @@ export default function TopUp() {
       return;
     }
     try {
-      // Fetch user's credit balance, fail if no row exists
-      const { data: creditData, error: creditError } = await supabase
+      // First get current balance
+      const { data: currentData, error: fetchError } = await supabase
         .from('credits')
         .select('credit_balance')
         .eq('user_id', userId)
         .single();
 
-      console.log('Credit Data (Before Update):', creditData, 'Credit Error:', creditError); // Debug log
-
-      if (!creditData) {
-        setMessage('No credit record found. Please contact support or sign up again.');
-        return;
+      if (fetchError) {
+        throw fetchError;
       }
 
-      if (creditError) {
-        if (creditError.code === 'PGRST116') { // No rows found
-          setMessage('No credit record found. Please contact support or sign up again.');
-          return;
-        }
-        throw creditError;
+      if (!currentData) {
+        throw new Error('No credit record found');
       }
 
-      const currentCredit = creditData.credit_balance;
-      if (currentCredit === null || currentCredit === undefined) {
-        setMessage('Invalid credit balance. Please contact support.');
-        return;
-      }
+      const newBalance = (currentData.credit_balance || 0) + parseInt(amount);
 
-      const newCredit = currentCredit + parseInt(amount);
-
-      // Update credit balance and ensure we get the updated row
-      const { data: updatedCredit, error: updateError } = await supabase
+      // Update the balance
+      const { data: updated, error: updateError } = await supabase
         .from('credits')
-        .update({ credit_balance: newCredit })
+        .update({ credit_balance: newBalance })
         .eq('user_id', userId)
-        .single()
-        .then(response => ({
-          data: response.data,
-          error: response.error,
-        }));
-
-      console.log('Updated Credit Data:', updatedCredit, 'Update Error:', updateError); // Debug log
+        .select()
+        .single();
 
       if (updateError) {
-        if (updateError.status === 406) {
-          throw new Error('Supabase rejected the update. Check RLS policies or API headers.');
-        }
         throw updateError;
       }
 
-      // Handle case where updatedCredit might be null, fallback to newCredit
-      const finalCredit = updatedCredit?.credit_balance || newCredit;
-      setMessage(`Top-up successful! Your new balance is: ${finalCredit} credits`);
-      setAmount(''); // Reset input
+      setMessage(`Top-up successful! Your new balance is: ${updated.credit_balance} credits`);
+      setAmount('');
     } catch (err) {
+      console.error('Top-up error:', err);
       setMessage(`An error occurred during top-up: ${err.message}`);
     }
   };
