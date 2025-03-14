@@ -37,3 +37,6 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 
 ## Test Commit
 This is a test commit to verify Git configuration.
+
+## Deployment Status
+This application is deployed on Vercel and can be accessed at [webapp-sand-sigma.vercel.app](https://webapp-sand-sigma.vercel.app).
